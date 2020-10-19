@@ -337,6 +337,19 @@ class EncoderDecoderModel(PreTrainedModel):
             argument[len("decoder_") :]: value for argument, value in kwargs.items() if argument.startswith("decoder_")
         }
         
+#         if input_ids is not None:
+#             print("input_ids:", input_ids[0])
+#         else:
+#             print("input_ids:", input_ids)
+#         if decoder_input_ids is not None:
+#             print("decoder_input_ids:", decoder_input_ids[0])
+#         else:
+#             print("decoder_input_ids:", decoder_input_ids)
+#         if token_align_ids is not None:
+#             print("token_align_ids:", token_align_ids[0])
+#         else:
+#             print("there is no token_align_ids here.")
+        
         if encoder_outputs is None:
             encoder_outputs = self.encoder(
                 input_ids=input_ids,

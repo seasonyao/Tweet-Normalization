@@ -34,14 +34,13 @@ logging.basicConfig(level=logging.INFO)
 #----------------------------------------------------------------------------------------------
 SEED = 42
 SAME_INOUTPUT_RATE = 0
-TWEET_COPY_TASK = 0
+TWEET_COPY_TASK = 1
 COPY_TASK_MAX_LEN = 128
 
 NORM_TASK_MAX_LEN = 128 #128 means all here, since max token num is 128
 
-FINE_TUNING_ON_TWEET_COPY = 1
-#TWEET_COPY_MODEL_PATH = './models/bert2bert_share/tweetcopy_lenall/4/checkpoint-3000'
-TWEET_COPY_MODEL_PATH = './models/bert2bert_share/ios0_naemb_1e4_preTweetcopy_tweetnorm/2/checkpoint-5000'
+FINE_TUNING_ON_TWEET_COPY = 0
+TWEET_COPY_MODEL_PATH = './models/bert2bert_share/tweetcopy_len12/3/checkpoint-5000'
 
 LR = 1e-4 #3e-4, 1e-4, 5e-5, 3e-5
 
@@ -50,13 +49,12 @@ RUN_NAME="bert2bert_share"
 ENCODER = "bert-base-uncased"
 DECODER = "bert-base-uncased"
 tie_ENCODER_DECODER=True
-OUTPUT_DIR="./models/"+RUN_NAME+"/"+str(model_name)+"/4"
+OUTPUT_DIR="./models/"+RUN_NAME+"/"+str(model_name)+"/14"
 
-# RUN_NAME="tweetcopy_max_all_1e4_batch48"
-# RUN_NAME = "zonghaiyao tweetcopy " + RUN_NAME
-
-RUN_NAME="tweetnorm_1e4_fromCopy_ios0_noAlignEmbed"
-RUN_NAME = "zonghaiyao tweetnorm " + RUN_NAME
+# RUN_NAME="bert2bert_share_ios0_lr1e4_alignEmbed"
+# RUN_NAME="tweetcopy_max_all_1e4_batch16_preCopy12"
+RUN_NAME="tweetcopy_max_all_1e4_batch16"
+RUN_NAME = "zonghaiyao tweetcopy " + RUN_NAME
 
 batch_size = 16   # set batch size here
 encoder_length = 128
@@ -66,8 +64,8 @@ PATH_TO_TRAIN_DATA = "WNUT2015_dataset/train_data.json"
 PATH_TO_VAL_DATA = "WNUT2015_dataset/test_truth.json"
 is_alignEmbed = False
 
-rouge = load_metric('rouge', experiment_id=2)
-bleu = load_metric('bleu', experiment_id=2)
+rouge = load_metric('rouge', experiment_id=14)
+bleu = load_metric('bleu', experiment_id=14)
 
 #---------------------------------------------------------------------------------------------
 # set EncoderDecoderModel
@@ -76,7 +74,6 @@ if FINE_TUNING_ON_TWEET_COPY == 1:
     model = EncoderDecoderModel.from_pretrained(TWEET_COPY_MODEL_PATH, config=encoder_decoder_config)
 else:
     model = EncoderDecoderModel.from_encoder_decoder_pretrained(ENCODER, DECODER, tie_encoder_decoder = tie_ENCODER_DECODER)
-
 
 # encoder tokenizer
 encoder_tokenizer = AutoTokenizer.from_pretrained(ENCODER)
@@ -172,9 +169,17 @@ val_dataset['output'] = val_dataset['output'].apply(pre_pocessing_output)
 #-----------------------------------------
 #check if it is tweet-copy task
 if TWEET_COPY_TASK == 1:
+    train_dataset_copy = train_dataset.copy()
+    
     make_input_output_same = lambda x: x['output'].copy()
     train_dataset['input'] = train_dataset.apply(make_input_output_same, axis=1)
     val_dataset['input'] = val_dataset.apply(make_input_output_same, axis=1)
+    
+    make_input_output_same = lambda x: x['input'].copy()
+    train_dataset_copy['output'] = train_dataset_copy.apply(make_input_output_same, axis=1)
+    
+    train_dataset = train_dataset.append(train_dataset_copy, ignore_index=True)
+    train_dataset = train_dataset.sample(frac=1, random_state=SEED).reset_index(drop=True)
 #do some data augumentation
 elif SAME_INOUTPUT_RATE > 0: 
     train_dataset_no_chage_data = train_dataset.copy()
@@ -469,23 +474,20 @@ training_args = TrainingArguments(
     evaluate_during_training=True,
     do_train=True,
     do_eval=True,
-    
+#     logging_steps=1000,
+#     save_steps=5000,
+#     eval_steps=2000,
+#     overwrite_output_dir=True,
+#     warmup_steps=1000,
+#     save_total_limit=3,
+#     num_train_epochs=200,
     logging_steps=200,
     save_steps=1000,
-    eval_steps=300,
+    eval_steps=200,
     overwrite_output_dir=True,
-    warmup_steps=1000,
+    warmup_steps=100,
     save_total_limit=3,
-    num_train_epochs=30,
-
-#     logging_steps=200,
-#     save_steps=1000,
-#     eval_steps=300,
-#     overwrite_output_dir=True,
-#     warmup_steps=100,
-#     save_total_limit=3,
-#     num_train_epochs=20,
-    
+    num_train_epochs=20,
     fp16=True,
     seed=SEED,
     learning_rate=LR,

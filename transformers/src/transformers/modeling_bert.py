@@ -217,7 +217,8 @@ class myBertEmbeddings(nn.Module):
         # if has token_align_ids, we need use it like token_type_ids, and add it to embeddings
         token_align_embeddings = self.token_align_embeddings(token_align_ids)
         
-        embeddings = inputs_embeds + position_embeddings + token_type_embeddings + token_align_embeddings
+        #embeddings = inputs_embeds + position_embeddings + token_type_embeddings + token_align_embeddings
+        embeddings = inputs_embeds + position_embeddings + token_type_embeddings
         
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
